@@ -123,14 +123,24 @@ def timer_loop(curr_id):
             if curr_id != auction_id:
                 return
             auction = state["currentAuction"]
-            if auction["status"] not in ["bidding", "preparing"]:
+            if auction["status"] not in ["bidding", "preparing", "drawing"]:
                 return
             
             if auction["timer"] > 0:
                 auction["timer"] -= 1
                 broadcast_state()
             else:
-                if auction["status"] == "preparing":
+                if auction["status"] == "drawing":
+                    # Transition from drawing (roulette) to preparing phase
+                    auction["status"] = "preparing"
+                    auction["timer"] = 5
+                    state["history"].append({
+                        "type": "start",
+                        "text": f"📢 [경매 대기] 추첨된 {auction['player']['name']} 선수의 경매가 5초 후 개시됩니다! 포지션: {auction['player']['role'].upper()}",
+                        "time": time.strftime("%H:%M:%S")
+                    })
+                    broadcast_state()
+                elif auction["status"] == "preparing":
                     # Transition from preparing to bidding phase
                     auction["status"] = "bidding"
                     auction["timer"] = state["settings"]["timerDuration"]
@@ -443,7 +453,39 @@ class AuctionHandler(SimpleHTTPRequestHandler):
         with state_lock:
             auction = state["currentAuction"]
             
-            if action == "start":
+            if action == "draw_random":
+                idle_players = [p for p in state["players"] if p["status"] == "idle"]
+                if not idle_players:
+                    self.send_error_response(400, "경매 가능한 대기 선수가 없습니다.")
+                    return
+                    
+                # Pick a random idle player
+                player = random.choice(idle_players)
+                
+                # Initialize in DRAWING phase (4 seconds roulette)
+                save_undo_snapshot()
+                auction["player"] = player
+                auction["currentBid"] = 0
+                auction["highestBidder"] = None
+                auction["timer"] = 4  # 4 seconds slot machine / spinner animation
+                auction["status"] = "drawing"
+                
+                # Mark player status
+                for p in state["players"]:
+                    if p["id"] == player["id"]:
+                        p["status"] = "auctioning"
+                        
+                state["history"].append({
+                    "type": "start",
+                    "text": "🎲 다음 경매 대상 선수를 추첨하는 중...",
+                    "time": time.strftime("%H:%M:%S")
+                })
+                
+                start_timer_thread()
+                broadcast_state()
+                self.send_json_response({"success": True})
+                
+            elif action == "start":
                 player_id = data.get("playerId")
                 player = next((p for p in state["players"] if p["id"] == player_id), None)
                 if not player:
@@ -477,7 +519,8 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 self.send_json_response({"success": True})
                 
             elif action == "pause":
-                if auction["status"] in ["bidding", "preparing"]:
+                if auction["status"] in ["bidding", "preparing", "drawing"]:
+                    auction["pausedStatus"] = auction["status"]
                     auction["status"] = "paused"
                     broadcast_state()
                     self.send_json_response({"success": True})
@@ -486,11 +529,8 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     
             elif action == "resume":
                 if auction["status"] == "paused":
-                    # Determine whether it was paused during preparing or bidding
-                    if auction["currentBid"] == 0 and auction["highestBidder"] is None:
-                        auction["status"] = "preparing"
-                    else:
-                        auction["status"] = "bidding"
+                    status_to_restore = auction.get("pausedStatus", "bidding")
+                    auction["status"] = status_to_restore
                         
                     start_timer_thread()
                     broadcast_state()

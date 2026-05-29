@@ -6,6 +6,8 @@ let eventSource = null;
 
 // Web Audio API 오디오 합성용 컨텍스트
 let audioCtx = null;
+let rouletteInterval = null;
+let isRouletteRunning = false;
 
 // 이전 상태 캐시 (사운드 및 음성 실시간 중계 트리거 감지용)
 let lastBidValue = 0;
@@ -276,8 +278,19 @@ function handleStateUpdate(state) {
     playSound('tick');
   }
   
+  // 선수 무작위 추첨 감지 (4초 룰렛)
+  if (auction.status === 'drawing' && lastAuctionStatus !== 'drawing') {
+    if (auction.player) {
+      startRouletteAnimation(auction.player, state.players);
+    }
+  }
+  
   // 신규 선수 경매 개시 준비 감지 (5초 대기 텀)
   if (auction.status === 'preparing' && lastAuctionStatus !== 'preparing') {
+    // 만약 룰렛 연동 없이 관리자가 강제 노미네이트한 경우 대비 룰렛 정지 보장
+    if (isRouletteRunning) {
+      stopRouletteAnimation(auction.player);
+    }
     playSound('bid');
     if (auction.player) {
       speakText(`${auction.player.name} 선수의 경매가 준비 중입니다. 포지션은 ${roleToKorean(auction.player.role)}입니다. 잠시 후 입찰이 시작됩니다.`);
@@ -375,30 +388,35 @@ function renderAuctionBoard() {
   const apTier = document.getElementById('ap-tier');
   const apBio = document.getElementById('ap-bio');
   
-  if (auction.player) {
-    apName.textContent = auction.player.name;
-    apAvatarText.textContent = auction.player.name.charAt(0);
-    apRole.textContent = auction.player.role.toUpperCase();
-    
-    // 티어 클래스 부여
-    apTier.textContent = `${auction.player.tier} Class`;
-    apTier.className = `player-tier ${auction.player.tier}`;
-    apTier.style.display = 'inline-block';
-    
-    apBio.textContent = auction.player.bio || "선수 소개가 등록되어 있지 않습니다.";
+  if (isRouletteRunning) {
+    // 룰렛 추첨 애니메이션 진행 중일 때는 타이머 갱신으로 인한 카드 리렌더링을 차단합니다.
   } else {
-    apName.textContent = "경매 대기 중...";
-    apAvatarText.textContent = "?";
-    apRole.textContent = "ROLE";
-    apTier.style.display = 'none';
-    apBio.textContent = "진행 중인 선수가 없습니다. 관리자가 다음 선수를 대기열에서 기동하기를 기다리십시오.";
+    if (auction.player) {
+      apName.textContent = auction.player.name;
+      apAvatarText.textContent = auction.player.name.charAt(0);
+      apRole.textContent = auction.player.role.toUpperCase();
+      apTier.textContent = `${auction.player.tier} Class`;
+      apTier.className = `player-tier ${auction.player.tier}`;
+      apTier.style.display = 'inline-block';
+      apBio.textContent = auction.player.bio || "선수 소개가 등록되어 있지 않습니다.";
+    } else {
+      apName.textContent = "경매 대기 중...";
+      apAvatarText.textContent = "?";
+      apRole.textContent = "ROLE";
+      apTier.style.display = 'none';
+      apBio.textContent = "진행 중인 선수가 없습니다. 관리자가 다음 선수를 대기열에서 기동하기를 기다리십시오.";
+    }
   }
   
   // (B) 호가 정보
   const apCurrentBid = document.getElementById('ap-current-bid');
   const apHighestBidder = document.getElementById('ap-highest-bidder');
   
-  if (auction.status === 'preparing') {
+  if (auction.status === 'drawing') {
+    apCurrentBid.textContent = "추첨 진행 중";
+    apHighestBidder.textContent = "선수를 임의 추첨하고 있습니다.";
+    apHighestBidder.style.color = 'var(--blue)';
+  } else if (auction.status === 'preparing') {
     apCurrentBid.textContent = "입찰 대기";
     apHighestBidder.textContent = "잠시 후 입찰이 시작됩니다.";
     apHighestBidder.style.color = 'var(--gold)';
@@ -454,7 +472,10 @@ function renderAuctionBoard() {
       let disabled = false;
       let reason = "";
       
-      if (auction.status === 'preparing') {
+      if (auction.status === 'drawing') {
+        disabled = true;
+        reason = "선수 추첨 진행 중...";
+      } else if (auction.status === 'preparing') {
         disabled = true;
         reason = "경매 대기 중 (5초 후 개시)";
       } else if (auction.status !== 'bidding') {
@@ -1041,3 +1062,92 @@ async function adminResetAll() {
     console.error(err);
   }
 }
+
+// ----------------------------------------------------
+// 선수 무작위 룰렛 추첨 기능 (추가됨)
+// ----------------------------------------------------
+
+function adminStartRandomDraw() {
+  adminControl('draw_random');
+  switchTab('auction');
+}
+
+function startRouletteAnimation(targetPlayer, allPlayers) {
+  if (isRouletteRunning) return;
+  isRouletteRunning = true;
+  
+  const apName = document.getElementById('ap-name');
+  const apAvatarText = document.getElementById('ap-avatar-text');
+  const apRole = document.getElementById('ap-role');
+  const apTier = document.getElementById('ap-tier');
+  const apBio = document.getElementById('ap-bio');
+  
+  apTier.style.display = 'none';
+  apBio.textContent = "다음 경매 대상 선수를 무작위로 추첨하는 중입니다...";
+  
+  // 대기 상태의 선수 필터링
+  let idlePlayers = allPlayers.filter(p => p.status === 'idle' || p.id === targetPlayer.id);
+  if (idlePlayers.length < 5) {
+    // 풀이 작을 경우 전체 선수 풀 사용
+    idlePlayers = allPlayers;
+  }
+  
+  let spinCount = 0;
+  let speed = 40; // 시작 속도 (매우 빠름, ms 단위)
+  
+  function spin() {
+    if (!isRouletteRunning) return;
+    
+    spinCount++;
+    const randomPlayer = idlePlayers[Math.floor(Math.random() * idlePlayers.length)];
+    
+    apName.textContent = randomPlayer.name;
+    apAvatarText.textContent = randomPlayer.name.charAt(0);
+    apRole.textContent = randomPlayer.role.toUpperCase();
+    
+    // 회전 효과음 출력
+    playSound('tick');
+    
+    // 점진적 감속 제어
+    // 3.8초(3800ms) 전후로 멈춰서 최종 타겟을 동기화하여 표시함
+    if (spinCount > 25) {
+      speed += 25; // 극감속 구간
+    } else {
+      speed += 3;  // 미세감속 구간
+    }
+    
+    if (speed > 420 || spinCount > 35) {
+      stopRouletteAnimation(targetPlayer);
+    } else {
+      rouletteInterval = setTimeout(spin, speed);
+    }
+  }
+  
+  if (rouletteInterval) clearTimeout(rouletteInterval);
+  spin();
+}
+
+function stopRouletteAnimation(targetPlayer) {
+  isRouletteRunning = false;
+  if (rouletteInterval) clearTimeout(rouletteInterval);
+  
+  const apName = document.getElementById('ap-name');
+  const apAvatarText = document.getElementById('ap-avatar-text');
+  const apRole = document.getElementById('ap-role');
+  const apTier = document.getElementById('ap-tier');
+  const apBio = document.getElementById('ap-bio');
+  
+  if (targetPlayer) {
+    apName.textContent = targetPlayer.name;
+    apAvatarText.textContent = targetPlayer.name.charAt(0);
+    apRole.textContent = targetPlayer.role.toUpperCase();
+    apTier.textContent = `${targetPlayer.tier} Class`;
+    apTier.className = `player-tier ${targetPlayer.tier}`;
+    apTier.style.display = 'inline-block';
+    apBio.textContent = targetPlayer.bio || "선수 소개가 등록되어 있지 않습니다.";
+    
+    // 추첨 완료 팡파레 효과음
+    playSound('sold');
+  }
+}
+
