@@ -276,9 +276,22 @@ function handleStateUpdate(state) {
     playSound('tick');
   }
   
-  // 신규 선수 경매 개시 감지
-  if (auction.status === 'bidding' && lastAuctionStatus !== 'bidding') {
-    // 새 경매 시작
+  // 신규 선수 경매 개시 준비 감지 (5초 대기 텀)
+  if (auction.status === 'preparing' && lastAuctionStatus !== 'preparing') {
+    playSound('bid');
+    if (auction.player) {
+      speakText(`${auction.player.name} 선수의 경매가 준비 중입니다. 포지션은 ${roleToKorean(auction.player.role)}입니다. 잠시 후 입찰이 시작됩니다.`);
+    }
+  }
+  
+  // 경매 준비에서 입찰 개시로 전환 감지
+  if (auction.status === 'bidding' && lastAuctionStatus === 'preparing') {
+    playSound('sold');
+    speakText("입찰을 개시합니다!");
+  }
+  
+  // 신규 선수 경매 개시 감지 (준비를 거치지 않고 기동 시 호환성 유지)
+  if (auction.status === 'bidding' && lastAuctionStatus !== 'bidding' && lastAuctionStatus !== 'preparing') {
     if (auction.player) {
       speakText(`${auction.player.name} 선수의 경매가 시작되었습니다. 포지션은 ${roleToKorean(auction.player.role)}입니다.`);
     }
@@ -385,19 +398,24 @@ function renderAuctionBoard() {
   const apCurrentBid = document.getElementById('ap-current-bid');
   const apHighestBidder = document.getElementById('ap-highest-bidder');
   
-  apCurrentBid.textContent = `${auction.currentBid}p`;
-  
-  if (auction.highestBidder) {
-    const team = localState.teams.find(t => t.id === auction.highestBidder);
-    if (team) {
-      apHighestBidder.textContent = `${team.captain} 감독 (${team.name})`;
-      apHighestBidder.style.color = 'var(--blue)';
-    } else {
-      apHighestBidder.textContent = "알 수 없는 팀";
-    }
+  if (auction.status === 'preparing') {
+    apCurrentBid.textContent = "입찰 대기";
+    apHighestBidder.textContent = "잠시 후 입찰이 시작됩니다.";
+    apHighestBidder.style.color = 'var(--gold)';
   } else {
-    apHighestBidder.textContent = "입찰 내역 없음";
-    apHighestBidder.style.color = 'var(--text-secondary)';
+    apCurrentBid.textContent = `${auction.currentBid}p`;
+    if (auction.highestBidder) {
+      const team = localState.teams.find(t => t.id === auction.highestBidder);
+      if (team) {
+        apHighestBidder.textContent = `${team.captain} 감독 (${team.name})`;
+        apHighestBidder.style.color = 'var(--blue)';
+      } else {
+        apHighestBidder.textContent = "알 수 없는 팀";
+      }
+    } else {
+      apHighestBidder.textContent = "입찰 내역 없음";
+      apHighestBidder.style.color = 'var(--text-secondary)';
+    }
   }
   
   // (C) 타이머
@@ -436,7 +454,10 @@ function renderAuctionBoard() {
       let disabled = false;
       let reason = "";
       
-      if (auction.status !== 'bidding') {
+      if (auction.status === 'preparing') {
+        disabled = true;
+        reason = "경매 대기 중 (5초 후 개시)";
+      } else if (auction.status !== 'bidding') {
         disabled = true;
         reason = "경매가 활성 상태가 아닙니다.";
       } else if (auction.highestBidder === myTeamId) {
@@ -890,6 +911,26 @@ async function adminLoadPresets() {
     });
     const data = await res.json();
     if (!data.success) alert(data.message);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// 선수 리스트 랜덤 셔플 전송
+async function adminShufflePlayers() {
+  if (!confirm('현재 경매 대기 중인 모든 선수들의 순서를 임의로 섞으시겠습니까?')) return;
+  try {
+    const res = await fetch('/api/admin/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'shuffle' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('선수 순서가 무작위로 셔플되었습니다.');
+    } else {
+      alert(data.message || '셔플 실패');
+    }
   } catch (err) {
     console.error(err);
   }

@@ -120,18 +120,30 @@ def timer_loop(curr_id):
     while True:
         time.sleep(1)
         with state_lock:
-            # If auction_id changed, another thread or action took over. Exit.
             if curr_id != auction_id:
                 return
-            if state["currentAuction"]["status"] != "bidding":
+            auction = state["currentAuction"]
+            if auction["status"] not in ["bidding", "preparing"]:
                 return
             
-            if state["currentAuction"]["timer"] > 0:
-                state["currentAuction"]["timer"] -= 1
+            if auction["timer"] > 0:
+                auction["timer"] -= 1
                 broadcast_state()
             else:
-                process_expiry()
-                return
+                if auction["status"] == "preparing":
+                    # Transition from preparing to bidding phase
+                    auction["status"] = "bidding"
+                    auction["timer"] = state["settings"]["timerDuration"]
+                    state["history"].append({
+                        "type": "system",
+                        "text": f"🔥 {auction['player']['name']} 선수의 입찰이 개시되었습니다! (시작 호가: {state['settings']['minBid']}p)",
+                        "time": time.strftime("%H:%M:%S")
+                    })
+                    broadcast_state()
+                    trigger_ai_evaluation()
+                else:
+                    process_expiry()
+                    return
 
 def process_expiry():
     global state
@@ -441,13 +453,13 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     self.send_error_response(400, "이미 낙찰된 선수입니다.")
                     return
                     
-                # Initialize auction
+                # Initialize auction in PREPARING phase
                 save_undo_snapshot()
                 auction["player"] = player
                 auction["currentBid"] = 0
                 auction["highestBidder"] = None
-                auction["timer"] = state["settings"]["timerDuration"]
-                auction["status"] = "bidding"
+                auction["timer"] = 5  # 5 seconds preparation countdown
+                auction["status"] = "preparing"
                 
                 # Mark player status
                 for p in state["players"]:
@@ -456,7 +468,7 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                         
                 state["history"].append({
                     "type": "start",
-                    "text": f"📢 {player['name']} 선수의 경매가 개시되었습니다! 포지션: {player['role'].upper()}",
+                    "text": f"📢 [경매 대기] {player['name']} 선수의 경매가 5초 후 개시됩니다! 포지션: {player['role'].upper()}",
                     "time": time.strftime("%H:%M:%S")
                 })
                 
@@ -464,11 +476,8 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 broadcast_state()
                 self.send_json_response({"success": True})
                 
-                # Try triggering AI first bid
-                trigger_ai_evaluation()
-                
             elif action == "pause":
-                if auction["status"] == "bidding":
+                if auction["status"] in ["bidding", "preparing"]:
                     auction["status"] = "paused"
                     broadcast_state()
                     self.send_json_response({"success": True})
@@ -477,11 +486,17 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     
             elif action == "resume":
                 if auction["status"] == "paused":
-                    auction["status"] = "bidding"
+                    # Determine whether it was paused during preparing or bidding
+                    if auction["currentBid"] == 0 and auction["highestBidder"] is None:
+                        auction["status"] = "preparing"
+                    else:
+                        auction["status"] = "bidding"
+                        
                     start_timer_thread()
                     broadcast_state()
                     self.send_json_response({"success": True})
-                    trigger_ai_evaluation()
+                    if auction["status"] == "bidding":
+                        trigger_ai_evaluation()
                 else:
                     self.send_error_response(400, "경매가 일시정지 상태가 아닙니다.")
                     
@@ -572,6 +587,22 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     self.send_json_response({"success": True})
                 else:
                     self.send_error_response(400, "선수 데이터가 유효하지 않습니다.")
+                return
+                
+            elif action == "shuffle":
+                # Shuffle only idle players
+                idle_players = [p for p in state["players"] if p["status"] == "idle"]
+                random.shuffle(idle_players)
+                non_idle_players = [p for p in state["players"] if p["status"] != "idle"]
+                state["players"] = idle_players + non_idle_players
+                
+                state["history"].append({
+                    "type": "system",
+                    "text": "🎲 대기 상태의 선수 순서가 무작위로 셔플되었습니다.",
+                    "time": time.strftime("%H:%M:%S")
+                })
+                broadcast_state()
+                self.send_json_response({"success": True})
                 return
                 
             elif action == "add":
