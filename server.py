@@ -579,6 +579,30 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     self.send_json_response({"success": True})
                 else:
                     self.send_error_response(400, "재경매로 복귀시킬 수 없는 선수입니다.")
+            elif action == "reset":
+                save_undo_snapshot()
+                for t in state["teams"]:
+                    t["roster"] = { "top": None, "jungle": None, "mid": None, "adc": None, "support": None }
+                    t["points"] = state["settings"]["initPoints"]
+                    t["isAi"] = False
+                    t["aiStyle"] = "balanced"
+                for p in state["players"]:
+                    p["status"] = "idle"
+                    p["wonBy"] = None
+                    p["price"] = 0
+                auction["player"] = None
+                auction["currentBid"] = 0
+                auction["highestBidder"] = None
+                auction["timer"] = 0
+                auction["status"] = "idle"
+                state["history"].append({
+                    "type": "system",
+                    "text": "🔄 경매 시뮬레이터가 전체 초기화되었습니다 (로스터 및 포인트 리셋).",
+                    "time": time.strftime("%H:%M:%S")
+                })
+                broadcast_state()
+                self.send_json_response({"success": True})
+                return
             else:
                 self.send_error_response(400, "올바르지 않은 명령입니다.")
 
@@ -694,6 +718,23 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 broadcast_state()
                 self.send_json_response({"success": True})
                 return
+            elif action == "clear_all":
+                state["players"] = []
+                auction = state["currentAuction"]
+                if auction["player"] is not None:
+                    auction["player"] = None
+                    auction["currentBid"] = 0
+                    auction["highestBidder"] = None
+                    auction["status"] = "idle"
+                    auction["timer"] = 0
+                state["history"].append({
+                    "type": "system",
+                    "text": "❌ 모든 선수 데이터를 삭제했습니다.",
+                    "time": time.strftime("%H:%M:%S")
+                })
+                broadcast_state()
+                self.send_json_response({"success": True})
+                return
                 
             self.send_error_response(400, "잘못된 선수 관리 액션입니다.")
 
@@ -726,6 +767,59 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                         t["isAi"] = is_ai
                         t["aiStyle"] = ai_style
                         break
+                broadcast_state()
+                self.send_json_response({"success": True})
+                return
+            elif action == "add":
+                team = data.get("team")
+                if team:
+                    new_id = f"team_custom_{int(time.time()*1000)}"
+                    new_team = {
+                        "id": new_id,
+                        "name": team.get("name", "새로운 팀"),
+                        "captain": team.get("captain", "새 감독"),
+                        "points": team.get("points", state["settings"]["initPoints"]),
+                        "roster": { "top": None, "jungle": None, "mid": None, "adc": None, "support": None },
+                        "isAi": team.get("isAi", False),
+                        "aiStyle": team.get("aiStyle", "balanced")
+                    }
+                    state["teams"].append(new_team)
+                    state["history"].append({
+                        "type": "system",
+                        "text": f"👥 새 팀 추가: {new_team['captain']} 감독 ({new_team['name']})",
+                        "time": time.strftime("%H:%M:%S")
+                    })
+                    broadcast_state()
+                    self.send_json_response({"success": True, "team": new_team})
+                else:
+                    self.send_error_response(400, "팀 정보가 누락되었습니다.")
+                return
+            elif action == "delete":
+                team_id = data.get("teamId")
+                team_obj = next((t for t in state["teams"] if t["id"] == team_id), None)
+                if not team_obj:
+                    self.send_error_response(400, "존재하지 않는 팀입니다.")
+                    return
+                auction = state["currentAuction"]
+                if auction["status"] in ["bidding", "paused"] and auction["highestBidder"] == team_id:
+                    self.send_error_response(400, "현재 입찰 중인 팀은 삭제할 수 없습니다.")
+                    return
+                for pos, player_info in list(team_obj["roster"].items()):
+                    if player_info:
+                        p_id = player_info["id"]
+                        for p in state["players"]:
+                            if p["id"] == p_id:
+                                p["status"] = "idle"
+                                p["wonBy"] = None
+                                p["price"] = 0
+                t_name = team_obj["name"]
+                t_cap = team_obj["captain"]
+                state["teams"] = [t for t in state["teams"] if t["id"] != team_id]
+                state["history"].append({
+                    "type": "system",
+                    "text": f"❌ 팀 제거: {t_cap} 감독 ({t_name})",
+                    "time": time.strftime("%H:%M:%S")
+                })
                 broadcast_state()
                 self.send_json_response({"success": True})
                 return

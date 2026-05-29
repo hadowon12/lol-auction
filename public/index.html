@@ -74,7 +74,7 @@
         <nav class="nav-tabs">
           <button class="nav-tab active" onclick="switchTab('auction')">경매 보드</button>
           <button class="nav-tab" onclick="switchTab('rosters')">팀 로스터</button>
-          <button class="nav-tab admin-only" onclick="switchTab('players')" style="display: none;">선수 리스트</button>
+          <button class="nav-tab" onclick="switchTab('players')">선수 리스트</button>
           <button class="nav-tab admin-only" onclick="switchTab('teams')" style="display: none;">팀 설정(AI)</button>
           <button class="nav-tab admin-only" onclick="switchTab('settings')" style="display: none;">경매 규칙</button>
         </nav>
@@ -185,9 +185,10 @@
     <div id="tab-players" class="screen">
       <div class="section-header">
         <h2>선수 데이터베이스 관리</h2>
-        <div>
+        <div class="admin-only">
           <button class="btn btn-blue" style="margin-right: 10px; border-color: var(--gold); color: var(--gold);" onclick="adminShufflePlayers()">선수 순서 셔플 (무작위 정렬)</button>
-          <button class="btn btn-blue" onclick="adminLoadPresets()">기본 프리셋 로드</button>
+          <button class="btn btn-blue" style="margin-right: 10px;" onclick="adminLoadPresets()">기본 프리셋 로드</button>
+          <button class="btn btn-red" onclick="adminClearAllPlayers()">선수 전체 제거</button>
         </div>
       </div>
       
@@ -204,7 +205,7 @@
                   <th>설명</th>
                   <th>상태</th>
                   <th>낙찰자 / 낙찰금</th>
-                  <th>조작</th>
+                  <th id="th-player-action">조작</th>
                 </tr>
               </thead>
               <tbody id="player-table-body">
@@ -215,7 +216,7 @@
         </div>
 
         <!-- Add/Edit Player form -->
-        <div class="glass-panel">
+        <div class="glass-panel admin-only">
           <h3 id="player-form-title" style="margin-bottom: 15px;">선수 추가 / 수정</h3>
           <form id="player-form" onsubmit="handlePlayerSubmit(event)">
             <input type="hidden" id="edit-player-id">
@@ -274,6 +275,26 @@
     <div id="tab-teams" class="screen">
       <div class="section-header">
         <h2>팀 구성 및 AI 감독 입찰 설정</h2>
+      </div>
+
+      <!-- 새 팀 추가 패널 -->
+      <div class="glass-panel" style="margin-bottom: 20px; padding: 20px;">
+        <h3 style="color: var(--gold); margin-bottom: 15px;">새 팀 추가</h3>
+        <form id="add-team-form" onsubmit="handleAddTeam(event)" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+          <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 150px;">
+            <label for="new-team-name">팀명</label>
+            <input type="text" id="new-team-name" class="input-field" placeholder="예: 동수칸의 기사단" required style="width: 100%;">
+          </div>
+          <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 150px;">
+            <label for="new-team-captain">감독명</label>
+            <input type="text" id="new-team-captain" class="input-field" placeholder="예: 한동숙" required style="width: 100%;">
+          </div>
+          <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 120px;">
+            <label for="new-team-points">초기 포인트</label>
+            <input type="number" id="new-team-points" class="input-field" placeholder="1000" min="0" style="width: 100%;">
+          </div>
+          <button type="submit" class="btn btn-blue" style="height: 38px;">팀 추가하기</button>
+        </form>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">

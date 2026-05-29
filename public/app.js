@@ -111,27 +111,49 @@ function speakText(text) {
 // ----------------------------------------------------
 
 // 1. 게이트 화면 초기 로드 시 감독 선택용 옵션들 채우기
-window.addEventListener('DOMContentLoaded', () => {
-  // 프리셋에서 팀 목록 가져오기
+async function loadGateTeams() {
   const select = document.getElementById('captain-team-select');
+  if (!select) return;
   select.innerHTML = '';
   
-  // window.PRESETS.teams 구조가 존재할 경우 채워줌
-  if (window.PRESETS && window.PRESETS.teams) {
-    window.PRESETS.teams.forEach(team => {
+  try {
+    const res = await fetch('/api/state');
+    const state = await res.json();
+    if (state && state.teams && state.teams.length > 0) {
+      state.teams.forEach(team => {
+        const opt = document.createElement('option');
+        opt.value = team.id;
+        opt.textContent = `${team.captain} 감독 (${team.name})`;
+        select.appendChild(opt);
+      });
+    } else {
       const opt = document.createElement('option');
-      opt.value = team.id;
-      opt.textContent = `${team.captain} 감독 (${team.name})`;
+      opt.textContent = "-- 등록된 팀이 없습니다 --";
       select.appendChild(opt);
-    });
+    }
+  } catch (err) {
+    console.error("팀 목록 로드 실패:", err);
+    if (window.PRESETS && window.PRESETS.teams) {
+      window.PRESETS.teams.forEach(team => {
+        const opt = document.createElement('option');
+        opt.value = team.id;
+        opt.textContent = `${team.captain} 감독 (${team.name})`;
+        select.appendChild(opt);
+      });
+    }
   }
-});
+}
+
+window.addEventListener('DOMContentLoaded', loadGateTeams);
 
 // 2. 역할 전환 표시
 function showCaptainSelection() {
   document.getElementById('admin-login-panel').style.display = 'none';
   const panel = document.getElementById('captain-select-panel');
   panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+  if (panel.style.display === 'flex') {
+    loadGateTeams();
+  }
 }
 
 function showAdminLogin() {
@@ -188,6 +210,16 @@ function enterApp() {
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
   }
   
+  // 레이아웃 스타일 동적 토글 (비관리자 선수 리스트 전체 너비 1열 그리드)
+  const pmGrid = document.querySelector('.player-manager-grid');
+  if (pmGrid) {
+    if (currentRole === 'admin') {
+      pmGrid.classList.remove('viewer-view');
+    } else {
+      pmGrid.classList.add('viewer-view');
+    }
+  }
+  
   // 첫 페이지 탭 세팅
   switchTab('auction');
   
@@ -208,6 +240,8 @@ function exitToGate() {
   document.getElementById('admin-login-panel').style.display = 'none';
   document.getElementById('captain-select-panel').style.display = 'none';
   document.getElementById('admin-password').value = '';
+  
+  loadGateTeams();
 }
 
 // 6. 탭 전환
@@ -648,6 +682,11 @@ function renderPlayersTab() {
   tbody.innerHTML = '';
   nominateSelect.innerHTML = '';
   
+  const thAction = document.getElementById('th-player-action');
+  if (thAction) {
+    thAction.style.display = currentRole === 'admin' ? '' : 'none';
+  }
+  
   // (A) 선수 데이터 테이블 작성
   localState.players.forEach(p => {
     const row = document.createElement('tr');
@@ -681,6 +720,17 @@ function renderPlayersTab() {
       actionBtnHtml = `<span style="font-size:0.8rem; color:var(--text-secondary);">해제 불가</span>`;
     }
     
+    let actionCellHtml = '';
+    if (currentRole === 'admin') {
+      actionCellHtml = `
+        <td>
+          <div style="display:flex; gap:6px;">
+            ${actionBtnHtml}
+          </div>
+        </td>
+      `;
+    }
+    
     row.innerHTML = `
       <td style="font-weight:bold; color:white;">${p.name}</td>
       <td style="text-transform:uppercase;">${p.role}</td>
@@ -688,11 +738,7 @@ function renderPlayersTab() {
       <td style="font-size:0.8rem; color:var(--text-secondary); max-width: 200px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${p.bio || ''}">${p.bio || ''}</td>
       <td><span class="${statusBadgeClass}">${statusText}</span></td>
       <td style="font-weight:700; color:var(--gold);">${wonDetails}</td>
-      <td>
-        <div style="display:flex; gap:6px;">
-          ${actionBtnHtml}
-        </div>
-      </td>
+      ${actionCellHtml}
     `;
     tbody.appendChild(row);
     
@@ -757,6 +803,8 @@ function renderTeamsTab() {
           <option value="frugal" ${team.aiStyle === 'frugal' ? 'selected' : ''}>가성비 지향 (Frugal)</option>
         </select>
       </div>
+
+      <button class="btn btn-red" style="width:100%; margin-top: 15px;" onclick="deleteTeam('${team.id}')">팀 삭제하기</button>
     `;
     container.appendChild(div);
   });
@@ -929,6 +977,28 @@ async function adminLoadPresets() {
   }
 }
 
+// 선수 리스트 전체 제거 전송
+async function adminClearAllPlayers() {
+  if (!confirm('🚨 경고: 정말로 모든 선수 데이터를 삭제하시겠습니까?\n이 작업은 복구할 수 없습니다.')) return;
+  try {
+    const res = await fetch('/api/admin/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear_all' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('모든 선수 데이터가 성공적으로 제거되었습니다.');
+      clearPlayerForm();
+    } else {
+      alert(data.message || '선수 제거 실패');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('서버 통신 오류가 발생했습니다.');
+  }
+}
+
 // 선수 리스트 랜덤 셔플 전송
 async function adminShufflePlayers() {
   if (!confirm('현재 경매 대기 중인 모든 선수들의 순서를 임의로 섞으시겠습니까?')) return;
@@ -993,6 +1063,63 @@ async function toggleTeamAi(teamId) {
     });
   } catch (err) {
     console.error(err);
+  }
+}
+
+// 새 팀 추가 핸들러
+async function handleAddTeam(e) {
+  e.preventDefault();
+  const name = document.getElementById('new-team-name').value;
+  const captain = document.getElementById('new-team-captain').value;
+  const pointsVal = document.getElementById('new-team-points').value;
+  const points = pointsVal ? parseInt(pointsVal, 10) : localState.settings.initPoints;
+  
+  try {
+    const res = await fetch('/api/admin/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add',
+        team: { name, captain, points }
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('add-team-form').reset();
+      alert(`${captain} 감독의 ${name} 팀이 추가되었습니다.`);
+    } else {
+      alert(data.message || '팀 추가 실패');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('서버 통신 오류가 발생했습니다.');
+  }
+}
+
+// 팀 삭제 핸들러
+async function deleteTeam(teamId) {
+  const team = localState.teams.find(t => t.id === teamId);
+  if (!team) return;
+  if (!confirm(`🚨 경고: 정말로 ${team.captain} 감독의 ${team.name} 팀을 삭제하시겠습니까?\n이 팀이 영입한 선수들은 모두 경매 대기 상태로 자동 방출됩니다.`)) return;
+  
+  try {
+    const res = await fetch('/api/admin/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete',
+        teamId: teamId
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('팀이 성공적으로 삭제되었습니다.');
+    } else {
+      alert(data.message || '팀 삭제 실패');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('서버 통신 오류가 발생했습니다.');
   }
 }
 
