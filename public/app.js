@@ -263,14 +263,7 @@ function handleStateUpdate(state) {
   // 입찰가 갱신 감지
   if (auction.status === 'bidding' && auction.currentBid > lastBidValue) {
     playSound('bid');
-    
-    // TTS 알림
-    if (auction.highestBidder) {
-      const team = state.teams.find(t => t.id === auction.highestBidder);
-      if (team) {
-        speakText(`${team.captain} 감독, ${auction.currentBid}포인트!`);
-      }
-    }
+    // TTS 제거 (입찰마다 아나운싱하는 소음 제거)
   }
   
   // 타이머 째깍소리 감지 (카운트다운 5초 이하)
@@ -287,26 +280,25 @@ function handleStateUpdate(state) {
   
   // 신규 선수 경매 개시 준비 감지 (5초 대기 텀)
   if (auction.status === 'preparing' && lastAuctionStatus !== 'preparing') {
-    // 만약 룰렛 연동 없이 관리자가 강제 노미네이트한 경우 대비 룰렛 정지 보장
     if (isRouletteRunning) {
       stopRouletteAnimation(auction.player);
     }
     playSound('bid');
     if (auction.player) {
-      speakText(`${auction.player.name} 선수의 경매가 준비 중입니다. 포지션은 ${roleToKorean(auction.player.role)}입니다. 잠시 후 입찰이 시작됩니다.`);
+      speakText(`${auction.player.name} 선수의 경매를 시작합니다.`);
     }
   }
   
   // 경매 준비에서 입찰 개시로 전환 감지
   if (auction.status === 'bidding' && lastAuctionStatus === 'preparing') {
     playSound('sold');
-    speakText("입찰을 개시합니다!");
+    // TTS 제거
   }
   
   // 신규 선수 경매 개시 감지 (준비를 거치지 않고 기동 시 호환성 유지)
   if (auction.status === 'bidding' && lastAuctionStatus !== 'bidding' && lastAuctionStatus !== 'preparing') {
     if (auction.player) {
-      speakText(`${auction.player.name} 선수의 경매가 시작되었습니다. 포지션은 ${roleToKorean(auction.player.role)}입니다.`);
+      speakText(`${auction.player.name} 선수의 경매를 시작합니다.`);
     }
   }
   
@@ -325,7 +317,7 @@ function handleStateUpdate(state) {
       document.getElementById('sold-price').textContent = `${auction.currentBid}p`;
       document.getElementById('sold-overlay').style.display = 'flex';
       
-      speakText(`${auction.player.name} 선수, ${capName} 감독에게 ${auction.currentBid}포인트 낙찰 완료!`);
+      speakText(`${auction.player.name} 선수, ${capName} 감독에게 ${auction.currentBid}포인트로 낙찰되었습니다.`);
       
       // 4초 후 오버레이 자동 닫기
       setTimeout(closeSoldOverlay, 4000);
