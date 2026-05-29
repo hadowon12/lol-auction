@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: lol-auction-simulator
+    env: python
+    buildCommand: "echo 'No build steps required'"
+    startCommand: "python server.py"
+    envVars:
+      - key: PORT
+        value: 10000

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoL 자낳대 실시간 경매 프로그램</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- 1. 입장 게이트 화면 (역할 선택) -->
+  <div id="gate-screen">
+    <div class="glass-panel gate-card">
+      <h1 class="gate-logo">자낳대 경매 시뮬레이터</h1>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">접속할 역할을 선택하세요.</p>
+      
+      <div class="role-buttons">
+        <!-- 관전자 -->
+        <div class="role-option" onclick="selectRole('viewer')">
+          <div class="role-info">
+            <div class="role-title">일반 관전자 / 선수</div>
+            <div class="role-desc">실시간 경매 중계 화면을 시청합니다. (조작 불가)</div>
+          </div>
+          <div class="role-arrow">→</div>
+        </div>
+
+        <!-- 감독 -->
+        <div class="role-option" onclick="showCaptainSelection()">
+          <div class="role-info">
+            <div class="role-title">팀 감독 (Captain)</div>
+            <div class="role-desc">지정된 팀의 감독으로 참여하여 입찰 버튼을 누릅니다.</div>
+          </div>
+          <div class="role-arrow">→</div>
+        </div>
+
+        <!-- 관리자 -->
+        <div class="role-option" onclick="showAdminLogin()">
+          <div class="role-info">
+            <div class="role-title">주최자 / 관리자 (Admin)</div>
+            <div class="role-desc">선수를 올리고 경매 시작, 정지 등 경매를 진행합니다.</div>
+          </div>
+          <div class="role-arrow">→</div>
+        </div>
+      </div>
+
+      <!-- 감독 팀 선택 패널 -->
+      <div id="captain-select-panel" class="admin-login">
+        <label for="captain-team-select" style="font-size: 0.85rem; font-weight: 700; display: block; text-align: left; margin-bottom: 5px;">감독할 팀 선택:</label>
+        <select id="captain-team-select" class="input-field" style="width: 100%; margin-bottom: 15px; background: var(--bg-dark); color: white;">
+          <!-- JS로 동적 로드 -->
+        </select>
+        <button class="btn btn-blue" style="width: 100%;" onclick="enterAsCaptain()">감독 입장하기</button>
+      </div>
+
+      <!-- 관리자 로그인 패널 -->
+      <div id="admin-login-panel" class="admin-login">
+        <input type="password" id="admin-password" class="input-field" placeholder="관리자 패스코드 입력 (기본: admin)" style="margin-bottom: 10px;">
+        <button class="btn btn-red" style="width: 100%;" onclick="enterAsAdmin()">관리자 인증 및 입장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Layout (역할 입장 후 표시) -->
+  <div id="app-layout" style="display: none; flex-direction: column; flex: 1;">
+    
+    <!-- Header -->
+    <header>
+      <div class="header-container">
+        <div class="logo-section">
+          <span class="logo-text">LoL 자낳대 경매</span>
+          <span id="role-indicator" class="role-badge viewer">관전자</span>
+        </div>
+        
+        <nav class="nav-tabs">
+          <button class="nav-tab active" onclick="switchTab('auction')">경매 보드</button>
+          <button class="nav-tab" onclick="switchTab('rosters')">팀 로스터</button>
+          <button class="nav-tab admin-only" onclick="switchTab('players')" style="display: none;">선수 리스트</button>
+          <button class="nav-tab admin-only" onclick="switchTab('teams')" style="display: none;">팀 설정(AI)</button>
+          <button class="nav-tab admin-only" onclick="switchTab('settings')" style="display: none;">경매 규칙</button>
+        </nav>
+
+        <div>
+          <button class="btn btn-red" style="padding: 6px 12px; font-size: 0.75rem;" onclick="exitToGate()">나가기</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. 경매 보드 탭 -->
+    <div id="tab-auction" class="screen active">
+      <div class="dashboard-grid">
+        
+        <!-- Left: Auction Arena -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="glass-panel arena-card" style="flex: 1;">
+            
+            <div>
+              <div class="auction-state-title">진행 중인 경매 선수</div>
+              
+              <!-- Active Player card -->
+              <div id="active-player-card" class="active-player-panel">
+                <div class="player-avatar-wrapper">
+                  <div class="player-avatar">
+                    <span id="ap-avatar-text" style="font-size: 2.2rem; font-weight: 900; font-family: var(--font-title);">?</span>
+                  </div>
+                  <div id="ap-role" class="player-role-badge">TOP</div>
+                </div>
+                
+                <div class="player-meta">
+                  <div id="ap-name" class="p-name">대기 중...</div>
+                  <span id="ap-tier" class="player-tier S">S</span>
+                  <div id="ap-bio" class="player-bio">진행 중인 선수가 없습니다. 관리자가 선수를 올리면 경매가 개시됩니다.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bid Info & Timer Display -->
+            <div>
+              <div class="bid-control-panel">
+                <div class="bid-info-display">
+                  <div class="label-title">현재 최고 입찰가</div>
+                  <div id="ap-current-bid" class="current-price-val">0p</div>
+                  <div id="ap-highest-bidder" class="highest-bidder-name">입찰자 없음</div>
+                </div>
+
+                <div id="timer-box" class="timer-container">
+                  <div class="timer-ring">
+                    <div id="timer-val" class="timer-val">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Captain Bidding Buttons -->
+              <div id="captain-controls" class="captain-bid-zone" style="display: none;">
+                <button id="bid-action-btn" class="huge-bid-btn" onclick="submitBid()">
+                  입찰 하기 (+5p)
+                </button>
+                <p id="captain-my-points" style="margin-top: 10px; font-weight: 700; color: var(--gold);"></p>
+              </div>
+
+              <!-- Admin Controls -->
+              <div id="admin-controls" class="admin-control-zone" style="display: none;">
+                <h4 style="width: 100%; margin-bottom: 5px; color: var(--red);">경매 통제 장치 (Admin ONLY)</h4>
+                <button class="btn btn-blue" onclick="adminControl('resume')">경매 시작/재개</button>
+                <button class="btn btn-red" onclick="adminControl('pause')">일시정지</button>
+                <button class="btn btn-blue" onclick="adminControl('sell')">강제 낙찰</button>
+                <button class="btn btn-red" onclick="adminControl('unsold')">강제 유찰</button>
+                <button class="btn btn-blue" onclick="adminControl('undo')" style="border-color: #a5a5a5; color: #a5a5a5;">마지막 상태 되돌리기 (Undo)</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom: History feed -->
+          <div class="glass-panel" style="height: 250px; display: flex; flex-direction: column;">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">실시간 입찰 피드 및 알림</h3>
+            <div id="history-feed" class="history-feed" style="flex: 1;">
+              <!-- JS 동적 주입 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Teams Overview -->
+        <div class="glass-panel" style="display: flex; flex-direction: column;">
+          <h3 style="font-size: 1.1rem; margin-bottom: 16px; border-bottom: 1px solid rgba(200, 170, 110, 0.1); padding-bottom: 10px;">감독별 로스터 현황</h3>
+          <div id="teams-list" class="teams-list-panel">
+            <!-- JS 동적 주입 -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 3. 팀 로스터 상세 탭 -->
+    <div id="tab-rosters" class="screen">
+      <div class="section-header">
+        <h2>전체 팀 로스터 상세 현황</h2>
+      </div>
+      <div id="detailed-rosters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+        <!-- JS 동적 로드 -->
+      </div>
+    </div>
+
+    <!-- 4. 선수 리스트 관리 탭 (Admin) -->
+    <div id="tab-players" class="screen">
+      <div class="section-header">
+        <h2>선수 데이터베이스 관리</h2>
+        <div>
+          <button class="btn btn-blue" onclick="adminLoadPresets()">기본 프리셋 로드</button>
+        </div>
+      </div>
+      
+      <div class="player-manager-grid">
+        <div class="glass-panel" style="overflow: hidden;">
+          <h3 style="margin-bottom: 15px;">등록된 선수 목록</h3>
+          <div class="player-table-container">
+            <table class="game-table">
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>포지션</th>
+                  <th>티어</th>
+                  <th>설명</th>
+                  <th>상태</th>
+                  <th>낙찰자 / 낙찰금</th>
+                  <th>조작</th>
+                </tr>
+              </thead>
+              <tbody id="player-table-body">
+                <!-- JS 동적 로드 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add/Edit Player form -->
+        <div class="glass-panel">
+          <h3 id="player-form-title" style="margin-bottom: 15px;">선수 추가 / 수정</h3>
+          <form id="player-form" onsubmit="handlePlayerSubmit(event)">
+            <input type="hidden" id="edit-player-id">
+            
+            <div class="form-group">
+              <label for="player-name">선수명</label>
+              <input type="text" id="player-name" class="input-field" required placeholder="예: 얍얍">
+            </div>
+
+            <div class="form-group">
+              <label for="player-role">라인 포지션</label>
+              <select id="player-role" class="input-field" style="background: var(--bg-dark); color: white;">
+                <option value="top">TOP (탑)</option>
+                <option value="jungle">JUNGLE (정글)</option>
+                <option value="mid">MID (미드)</option>
+                <option value="adc">ADC (원딜)</option>
+                <option value="support">SUPPORT (서폿)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="player-tier">가상 티어</label>
+              <select id="player-tier" class="input-field" style="background: var(--bg-dark); color: white;">
+                <option value="S">S 클래스</option>
+                <option value="A">A 클래스</option>
+                <option value="B">B 클래스</option>
+                <option value="C">C 클래스</option>
+                <option value="D">D 클래스</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="player-bio">선수 한줄 소개</label>
+              <textarea id="player-bio" class="input-field" rows="3" placeholder="예: 안정적인 국밥 플레이, 오더 능력 탁월"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+              <button type="submit" class="btn btn-blue" style="flex: 1;">저장하기</button>
+              <button type="button" class="btn" onclick="clearPlayerForm()">취소</button>
+            </div>
+          </form>
+
+          <!-- Queue nomination list -->
+          <div style="margin-top: 30px; border-top: 1px solid var(--border-glass); padding-top: 20px;">
+            <h4 style="margin-bottom: 10px; color: var(--gold);">대기열 바로 올리기</h4>
+            <select id="nominate-select" class="input-field" style="width: 100%; margin-bottom: 10px; background: var(--bg-dark); color: white;">
+              <!-- JS 동적 로드 (idle 선수들) -->
+            </select>
+            <button class="btn btn-blue" style="width: 100%;" onclick="adminNominateSelected()">선택한 선수 경매 시작</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. 팀 및 AI 설정 탭 (Admin) -->
+    <div id="tab-teams" class="screen">
+      <div class="section-header">
+        <h2>팀 구성 및 AI 감독 입찰 설정</h2>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <!-- 각 팀의 에디터 카드 -->
+        <div id="teams-config-container" style="display: contents;">
+          <!-- JS 동적 로드 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. 경매 규칙 설정 탭 (Admin) -->
+    <div id="tab-settings" class="screen">
+      <div class="section-header">
+        <h2>경매 규칙 및 오디오 환경설정</h2>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <!-- Rules -->
+        <div class="glass-panel">
+          <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; color: var(--gold);">경매 규칙 설정</h3>
+          
+          <div class="form-group">
+            <label for="set-init-points">기본 부여 포인트 (초기 자본)</label>
+            <input type="number" id="set-init-points" class="input-field" min="100" max="5000" step="50">
+          </div>
+
+          <div class="form-group">
+            <label for="set-min-bid">선수 경매 시작 호가</label>
+            <input type="number" id="set-min-bid" class="input-field" min="0" max="200" step="5">
+          </div>
+
+          <div class="form-group">
+            <label for="set-bid-increment">기본 입찰 단위 (단위: Point)</label>
+            <input type="number" id="set-bid-increment" class="input-field" min="1" max="100" step="1">
+          </div>
+
+          <div class="form-group">
+            <label for="set-timer-duration">입찰 추가 카운트다운 타이머 (초)</label>
+            <input type="number" id="set-timer-duration" class="input-field" min="3" max="60" step="1">
+          </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="set-strict-reserve">
+              <strong>슬롯 포인트 보존 법칙 활성화 (Strict Reserve Points)</strong>
+            </label>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 20px; margin-top: 4px;">
+              남은 다른 슬롯들을 최소 가격(예: 5p)으로라도 영입할 포인트를 남겨두도록 입찰을 제한합니다.<br>
+              (비활성화 시 올인이 가능하며 남은 슬롯은 0p 유찰 드래프트로 채웁니다.)
+            </p>
+          </div>
+
+          <button class="btn btn-blue" style="margin-top: 20px; width: 100%;" onclick="adminSaveSettings()">규칙 적용하기</button>
+        </div>
+
+        <!-- Audio Settings and Operations -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="glass-panel">
+            <h3 style="margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; color: var(--gold);">브로드캐스트 오디오 설정</h3>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="set-audio-enabled" checked>
+                <strong>효과음 활성화 (Sound Effects)</strong>
+              </label>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 20px; margin-top: 4px;">
+                타이머 째깍 소리, 버저음, 경매 낙찰 효과음을 출력합니다.
+              </p>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+              <label class="checkbox-label">
+                <input type="checkbox" id="set-voice-enabled" checked>
+                <strong>한국어 실시간 음성 중계 활성화 (Voice Synthesis TTS)</strong>
+              </label>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin-left: 20px; margin-top: 4px;">
+                입찰가 증가 시 브라우저 내장 TTS가 입찰 현황을 읽어줍니다. (예: "따효니 감독 150포인트 입찰")
+              </p>
+            </div>
+          </div>
+
+          <!-- Total Reset -->
+          <div class="glass-panel" style="border-color: rgba(255, 78, 80, 0.4);">
+            <h3 style="margin-bottom: 10px; color: var(--red);">초기화 구역</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
+              현재 진행 중인 경매, 모든 감독의 로스터, 획득한 포인트 현황을 초기 상태로 리셋합니다. (선수 목록은 보존됨)
+            </p>
+            <button class="btn btn-red" style="width: 100%;" onclick="adminResetAll()">시뮬레이터 전체 초기화 실행</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 7. 낙찰 팝업 오버레이 (Sold Popup Modal) -->
+  <div id="sold-overlay" class="sold-modal-overlay">
+    <div class="sold-card">
+      <div style="font-family: var(--font-title); font-size: 0.9rem; color: var(--text-secondary); letter-spacing: 2px;">CONGRATULATIONS</div>
+      <h2>선수 낙찰 완료</h2>
+      <div id="sold-p-name" class="sold-player-name">얍얍</div>
+      <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 5px;">인수 팀</p>
+      <div id="sold-t-name" class="sold-team-name">따효니의 백수단</div>
+      <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 5px;">최종 낙찰 가격</p>
+      <div id="sold-price" class="sold-price">450p</div>
+      
+      <button class="btn btn-blue" onclick="closeSoldOverlay()" style="padding: 8px 30px;">닫기</button>
+    </div>
+  </div>
+
+  <!-- Preset data load -->
+  <script src="presets.js"></script>
+  <!-- Main script -->
+  <script src="app.js"></script>
+</body>
+</html>
