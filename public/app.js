@@ -376,6 +376,7 @@ function handleStateUpdate(state) {
   // 2. 대시보드 뷰 렌더링
   renderAuctionBoard();
   renderDetailedRosters();
+  renderUnsoldQueue();
   
   // 관리자 모드인 경우 하위 활성화 탭 갱신
   const activeTab = document.querySelector('.nav-tab.active');
@@ -391,6 +392,23 @@ function handleStateUpdate(state) {
 function roleToKorean(role) {
   const map = { top: "탑", jungle: "정글", mid: "미드", adc: "원딜", support: "서포터" };
   return map[role] || role;
+}
+
+// LoL 티어 한국어 번역 헬퍼
+function tierToKorean(tier) {
+  const map = {
+    Challenger: "챌린저",
+    Grandmaster: "그랜드마스터",
+    Master: "마스터",
+    Diamond: "다이아몬드",
+    Emerald: "에메랄드",
+    Platinum: "플래티넘",
+    Gold: "골드",
+    Silver: "실버",
+    Bronze: "브론즈",
+    Iron: "아이언"
+  };
+  return map[tier] || tier;
 }
 
 // 낙찰창 수동 닫기
@@ -421,7 +439,7 @@ function renderAuctionBoard() {
       apName.textContent = auction.player.name;
       apAvatarText.textContent = auction.player.name.charAt(0);
       apRole.textContent = auction.player.role.toUpperCase();
-      apTier.textContent = `${auction.player.tier} Class`;
+      apTier.textContent = tierToKorean(auction.player.tier);
       apTier.className = `player-tier ${auction.player.tier}`;
       apTier.style.display = 'inline-block';
       apBio.textContent = auction.player.bio || "선수 소개가 등록되어 있지 않습니다.";
@@ -480,56 +498,64 @@ function renderAuctionBoard() {
     capControls.style.display = 'block';
     
     const myTeam = localState.teams.find(t => t.id === myTeamId);
-    const bidBtn = document.getElementById('bid-action-btn');
     const myPointsText = document.getElementById('captain-my-points');
     
     if (myTeam) {
       myPointsText.textContent = `나의 가용 포인트: ${myTeam.points}p`;
       
-      // 다음 호가 계산
-      let nextBidAmount = auction.currentBid + localState.settings.bidIncrement;
-      if (auction.currentBid === 0) {
-        nextBidAmount = localState.settings.minBid;
-      }
+      const buttonsInfo = [
+        { id: 'bid-btn-1', inc: 5 },
+        { id: 'bid-btn-2', inc: 10 },
+        { id: 'bid-btn-3', inc: 50 },
+        { id: 'bid-btn-4', inc: 100 }
+      ];
       
-      bidBtn.textContent = `입찰 버튼 클릭 (+${localState.settings.bidIncrement}p / ${nextBidAmount}p 입찰)`;
-      
-      // 유효성 체크
-      let disabled = false;
-      let reason = "";
-      
-      if (auction.status === 'drawing') {
-        disabled = true;
-        reason = "선수 추첨 진행 중...";
-      } else if (auction.status === 'preparing') {
-        disabled = true;
-        reason = "경매 대기 중 (5초 후 개시)";
-      } else if (auction.status !== 'bidding') {
-        disabled = true;
-        reason = "경매가 활성 상태가 아닙니다.";
-      } else if (auction.highestBidder === myTeamId) {
-        disabled = true;
-        reason = "현재 최고 입찰 상태입니다.";
-      } else if (auction.player && myTeam.roster[auction.player.role] !== null) {
-        disabled = true;
-        reason = `이미 ${roleToKorean(auction.player.role)} 라인 포지션을 영입했습니다.`;
-      } else if (myTeam.points < nextBidAmount) {
-        disabled = true;
-        reason = "포인트가 부족합니다.";
-      } else if (localState.settings.strictReserve) {
-        // 포인트 보존 체크
-        const emptySlotsCount = Object.values(myTeam.roster).filter(val => val === null).length;
-        const requiredReserve = (emptySlotsCount - 1) * localState.settings.minBid;
-        if (myTeam.points - nextBidAmount < requiredReserve) {
-          disabled = true;
-          reason = `포인트 부족 (남은 슬롯용 예약분 ${requiredReserve}p 유지 필요)`;
+      buttonsInfo.forEach(item => {
+        const btnEl = document.getElementById(item.id);
+        if (!btnEl) return;
+        
+        let nextBidAmount = auction.currentBid + item.inc;
+        if (auction.currentBid === 0) {
+          nextBidAmount = Math.max(item.inc, localState.settings.minBid);
         }
-      }
-      
-      bidBtn.disabled = disabled;
-      if (disabled && reason) {
-        bidBtn.textContent = reason;
-      }
+        
+        let disabled = false;
+        let reason = "";
+        
+        if (auction.status === 'drawing') {
+          disabled = true;
+          reason = "추첨 중";
+        } else if (auction.status === 'preparing') {
+          disabled = true;
+          reason = "대기 중";
+        } else if (auction.status !== 'bidding') {
+          disabled = true;
+          reason = "경매 비활성";
+        } else if (auction.highestBidder === myTeamId) {
+          disabled = true;
+          reason = "최고 입찰중";
+        } else if (auction.player && myTeam.roster[auction.player.role] !== null) {
+          disabled = true;
+          reason = "이미 영입";
+        } else if (myTeam.points < nextBidAmount) {
+          disabled = true;
+          reason = "잔고 부족";
+        } else if (localState.settings.strictReserve) {
+          const emptySlotsCount = Object.values(myTeam.roster).filter(val => val === null).length;
+          const requiredReserve = (emptySlotsCount - 1) * localState.settings.minBid;
+          if (myTeam.points - nextBidAmount < requiredReserve) {
+            disabled = true;
+            reason = "예약 필수";
+          }
+        }
+        
+        btnEl.disabled = disabled;
+        if (disabled && reason) {
+          btnEl.textContent = `+${item.inc}p (${reason})`;
+        } else {
+          btnEl.textContent = `+${item.inc}p (→ ${nextBidAmount}p)`;
+        }
+      });
     }
   } else {
     capControls.style.display = 'none';
@@ -734,7 +760,7 @@ function renderPlayersTab() {
     row.innerHTML = `
       <td style="font-weight:bold; color:white;">${p.name}</td>
       <td style="text-transform:uppercase;">${p.role}</td>
-      <td><span class="player-tier ${p.tier}" style="font-size:0.75rem; padding: 1px 6px;">${p.tier}</span></td>
+      <td><span class="player-tier ${p.tier}" style="font-size:0.75rem; padding: 1px 6px;">${tierToKorean(p.tier)}</span></td>
       <td style="font-size:0.8rem; color:var(--text-secondary); max-width: 200px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${p.bio || ''}">${p.bio || ''}</td>
       <td><span class="${statusBadgeClass}">${statusText}</span></td>
       <td style="font-weight:700; color:var(--gold);">${wonDetails}</td>
@@ -746,7 +772,7 @@ function renderPlayersTab() {
     if (p.status === 'idle') {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${p.name} (${p.role.toUpperCase()} | ${p.tier}급)`;
+      opt.textContent = `${p.name} (${p.role.toUpperCase()} | ${tierToKorean(p.tier)})`;
       nominateSelect.appendChild(opt);
     }
   });
@@ -827,15 +853,21 @@ function renderSettingsTab() {
 // ----------------------------------------------------
 
 // 1. 감독 입찰 전송
-async function submitBid() {
-  if (!myTeamId) return;
+async function submitBid(increment) {
+  if (!myTeamId || !localState) return;
   initAudio(); // 첫 클릭 시 브라우저 오디오 맥 활성화
+  
+  const auction = localState.currentAuction;
+  let nextBidAmount = auction.currentBid + increment;
+  if (auction.currentBid === 0) {
+    nextBidAmount = Math.max(increment, localState.settings.minBid);
+  }
   
   try {
     const res = await fetch('/api/bid', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ teamId: myTeamId })
+      body: JSON.stringify({ teamId: myTeamId, amount: nextBidAmount })
     });
     const data = await res.json();
     if (!data.success) {
@@ -1260,7 +1292,7 @@ function stopRouletteAnimation(targetPlayer) {
     apName.textContent = targetPlayer.name;
     apAvatarText.textContent = targetPlayer.name.charAt(0);
     apRole.textContent = targetPlayer.role.toUpperCase();
-    apTier.textContent = `${targetPlayer.tier} Class`;
+    apTier.textContent = tierToKorean(targetPlayer.tier);
     apTier.className = `player-tier ${targetPlayer.tier}`;
     apTier.style.display = 'inline-block';
     apBio.textContent = targetPlayer.bio || "선수 소개가 등록되어 있지 않습니다.";
@@ -1268,5 +1300,44 @@ function stopRouletteAnimation(targetPlayer) {
     // 추첨 완료 팡파레 효과음
     playSound('sold');
   }
+}
+
+// 유찰 대기열 렌더링 함수
+function renderUnsoldQueue() {
+  const queueEl = document.getElementById('unsold-queue');
+  if (!queueEl || !localState) return;
+  
+  const unsoldIds = localState.unsoldSequence || [];
+  if (unsoldIds.length === 0) {
+    queueEl.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px; font-size: 0.9rem;">현재 유찰된 선수가 없습니다.</div>';
+    return;
+  }
+  
+  let html = '';
+  unsoldIds.forEach((id, index) => {
+    const p = localState.players.find(player => player.id === id);
+    if (p) {
+      let actionBtn = '';
+      if (currentRole === 'admin') {
+        actionBtn = `<button class="btn btn-blue" style="padding: 2px 6px; font-size: 0.7rem;" onclick="reNominateUnsold('${p.id}')">재경매 복귀</button>`;
+      }
+      
+      html += `
+        <div class="history-item unsold" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; margin-bottom: 6px; background: rgba(255, 78, 80, 0.05); border-left: 3px solid var(--red); border-radius: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: bold; color: var(--red); font-size: 0.85rem;">#${index + 1}</span>
+            <span style="font-weight: bold; color: white;">${p.name}</span>
+            <span class="player-role-badge mini" style="font-size: 0.65rem; padding: 1px 4px;">${p.role.toUpperCase()}</span>
+            <span class="player-tier ${p.tier}" style="font-size: 0.65rem; padding: 1px 4px;">${tierToKorean(p.tier)}</span>
+          </div>
+          <div>
+            ${actionBtn}
+          </div>
+        </div>
+      `;
+    }
+  });
+  
+  queueEl.innerHTML = html;
 }
 

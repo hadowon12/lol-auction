@@ -499,11 +499,16 @@ header {
   margin-bottom: 12px;
 }
 
-.player-tier.S { background: #ff4e50; color: #fff; box-shadow: 0 0 10px rgba(255, 78, 80, 0.4); }
-.player-tier.A { background: #ffbe0b; color: #000; }
-.player-tier.B { background: #3a86c8; color: #fff; }
-.player-tier.C { background: #8338ec; color: #fff; }
-.player-tier.D { background: #a5a5a5; color: #000; }
+.player-tier.Challenger { background: #f0e6d2; color: #111; box-shadow: 0 0 12px #f0e6d2; border: 1.5px solid #c8aa6e; }
+.player-tier.Grandmaster { background: #ff4e50; color: #fff; box-shadow: 0 0 10px rgba(255, 78, 80, 0.4); border: 1px solid #ff4e50; }
+.player-tier.Master { background: #bd3df5; color: #fff; box-shadow: 0 0 10px rgba(189, 61, 245, 0.4); }
+.player-tier.Diamond { background: #00a8f3; color: #fff; box-shadow: 0 0 10px rgba(0, 168, 243, 0.4); }
+.player-tier.Emerald { background: #00c65d; color: #fff; box-shadow: 0 0 10px rgba(0, 198, 93, 0.4); }
+.player-tier.Platinum { background: #22d3ee; color: #0f172a; font-weight: 800; }
+.player-tier.Gold { background: #ffbe0b; color: #000; font-weight: 700; }
+.player-tier.Silver { background: #cbd5e1; color: #0f172a; }
+.player-tier.Bronze { background: #b45309; color: #fff; }
+.player-tier.Iron { background: #64748b; color: #fff; }
 
 .player-bio {
   color: var(--text-primary);
@@ -996,4 +1001,22 @@ table.game-table tr:hover td {
 
 .player-manager-grid.viewer-view {
   grid-template-columns: 1fr;
+}
+
+.bottom-panels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  height: 250px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .bottom-panels-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .bottom-panels-grid > div {
+    height: 250px;
+  }
 }

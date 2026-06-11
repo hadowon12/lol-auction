@@ -19,40 +19,40 @@ DEFAULT_TEAMS = [
 ]
 
 DEFAULT_PLAYERS = [
-    { "id": "p1", "name": "얍얍", "role": "top", "tier": "A", "bio": "원조 자낳대 탑 패왕, 강력한 라인전과 이니시", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p2", "name": "룩삼", "role": "top", "tier": "A", "bio": "안정적인 딜탱 밸런스, 뇌대리 최적화 플레이어", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p3", "name": "중력", "role": "top", "tier": "B", "bio": "기복 없는 국밥 챔피언 선호, 한타 집중력 우수", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p4", "name": "푸린", "role": "top", "tier": "S", "bio": "극강의 무력과 캐리력, 피지컬 종결자 탑라이너", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p5", "name": "소우릎", "role": "top", "tier": "S", "bio": "프로 출신, 정교한 라인 관리 및 넓은 시야", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p6", "name": "치킨쿤", "role": "top", "tier": "B", "bio": "팀을 위한 단단한 방패, 든든한 국밥 전문 탑", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p1", "name": "얍얍", "role": "top", "tier": "Diamond", "bio": "원조 자낳대 탑 패왕, 강력한 라인전과 이니시", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p2", "name": "룩삼", "role": "top", "tier": "Diamond", "bio": "안정적인 딜탱 밸런스, 뇌대리 최적화 플레이어", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p3", "name": "중력", "role": "top", "tier": "Platinum", "bio": "기복 없는 국밥 챔피언 선호, 한타 집중력 우수", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p4", "name": "푸린", "role": "top", "tier": "Challenger", "bio": "극강의 무력과 캐리력, 피지컬 종결자 탑라이너", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p5", "name": "소우릎", "role": "top", "tier": "Challenger", "bio": "프로 출신, 정교한 라인 관리 및 넓은 시야", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p6", "name": "치킨쿤", "role": "top", "tier": "Platinum", "bio": "팀을 위한 단단한 방패, 든든한 국밥 전문 탑", "status": "idle", "wonBy": None, "price": 0 },
 
-    { "id": "p7", "name": "삼식", "role": "jungle", "tier": "S", "bio": "동선 설계와 오브젝트 컨트롤이 뛰어난 정글사령관", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p8", "name": "남봉", "role": "jungle", "tier": "S", "bio": "미친 갱킹 타이밍과 피지컬, 캐리형 정글러", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p9", "name": "도현", "role": "jungle", "tier": "A", "bio": "뛰어난 교전 능력과 이니시 메이킹 최적화", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p10", "name": "쌍베", "role": "jungle", "tier": "B", "bio": "팀의 웃음 책임자이자 든든한 고기방패 정글", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p11", "name": "재현", "role": "jungle", "tier": "A", "bio": "속도감 있는 동선과 카운터 정글링의 대가", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p12", "name": "물쥐", "role": "jungle", "tier": "B", "bio": "성장 기대치가 높은 캐리형 AP 정글 선호", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p7", "name": "삼식", "role": "jungle", "tier": "Challenger", "bio": "동선 설계와 오브젝트 컨트롤이 뛰어난 정글사령관", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p8", "name": "남봉", "role": "jungle", "tier": "Challenger", "bio": "미친 갱킹 타이밍과 피지컬, 캐리형 정글러", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p9", "name": "도현", "role": "jungle", "tier": "Diamond", "bio": "뛰어난 교전 능력과 이니시 메이킹 최적화", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p10", "name": "쌍베", "role": "jungle", "tier": "Platinum", "bio": "팀의 웃음 책임자이자 든든한 고기방패 정글", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p11", "name": "재현", "role": "jungle", "tier": "Diamond", "bio": "속도감 있는 동선과 카운터 정글링의 대가", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p12", "name": "물쥐", "role": "jungle", "tier": "Platinum", "bio": "성장 기대치가 높은 캐리형 AP 정글 선호", "status": "idle", "wonBy": None, "price": 0 },
 
-    { "id": "p13", "name": "한동숙", "role": "mid", "tier": "B", "bio": "자낳대 역사상 최고의 미드 탱커, 팀의 정신적 지주", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p14", "name": "눈꽃", "role": "mid", "tier": "S", "bio": "미드 라인전 압살 능력과 넓은 챔프폭 보유", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p15", "name": "네클릿", "role": "mid", "tier": "A", "bio": "베테랑의 관록, 노련한 게임 조율과 로밍 메이킹", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p16", "name": "탬탬버린", "role": "mid", "tier": "C", "bio": "귀여운 플레이 스타일 뒤에 숨겨진 안정적 파밍력", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p17", "name": "도요새", "role": "mid", "tier": "B", "bio": "성장형 메이지 챔피언 선호, 후반 한타 캐리 가능", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p18", "name": "소풍왔니", "role": "mid", "tier": "C", "bio": "미드 유틸 챔피언 스페셜리스트, 탄탄한 어시스트", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p13", "name": "한동숙", "role": "mid", "tier": "Platinum", "bio": "자낳대 역사상 최고의 미드 탱커, 팀의 정신적 지주", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p14", "name": "눈꽃", "role": "mid", "tier": "Challenger", "bio": "미드 라인전 압살 능력과 넓은 챔프폭 보유", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p15", "name": "네클릿", "role": "mid", "tier": "Diamond", "bio": "베테랑의 관록, 노련한 게임 조율과 로밍 메이킹", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p16", "name": "탬탬버린", "role": "mid", "tier": "Gold", "bio": "귀여운 플레이 스타일 뒤에 숨겨진 안정적 파밍력", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p17", "name": "도요새", "role": "mid", "tier": "Platinum", "bio": "성장형 메이지 챔피언 선호, 후반 한타 캐리 가능", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p18", "name": "소풍왔니", "role": "mid", "tier": "Gold", "bio": "미드 유틸 챔피언 스페셜리스트, 탄탄한 어시스트", "status": "idle", "wonBy": None, "price": 0 },
 
-    { "id": "p19", "name": "따효니", "role": "adc", "tier": "A", "bio": "하이리스크 하이리턴의 상징, 미친 딜링 한계 돌파", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p20", "name": "괴물쥐", "role": "adc", "tier": "S", "bio": "압도적인 카이팅과 피지컬, 캐리형 원딜러의 표본", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p21", "name": "러너", "role": "adc", "tier": "B", "bio": "오더가 가능한 오지랖 원딜러, 팀 파이팅 조율", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p22", "name": "류제홍", "role": "adc", "tier": "A", "bio": "FPS 국가대표 출신의 동체시력과 뛰어난 무빙", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p23", "name": "예지", "role": "adc", "tier": "B", "bio": "라인전이 단단하고 한타 포지셔닝이 훌륭한 원딜", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p24", "name": "박잔디", "role": "adc", "tier": "C", "bio": "사리는 생존형 플레이, 서포터 보호 최적화", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p19", "name": "따효니", "role": "adc", "tier": "Diamond", "bio": "하이리스크 하이리턴의 상징, 미친 딜링 한계 돌파", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p20", "name": "괴물쥐", "role": "adc", "tier": "Challenger", "bio": "압도적인 카이팅과 피지컬, 캐리형 원딜러의 표본", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p21", "name": "러너", "role": "adc", "tier": "Platinum", "bio": "오더가 가능한 오지랖 원딜러, 팀 파이팅 조율", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p22", "name": "류제홍", "role": "adc", "tier": "Diamond", "bio": "FPS 국가대표 출신의 동체시력과 뛰어난 무빙", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p23", "name": "예지", "role": "adc", "tier": "Platinum", "bio": "라인전이 단단하고 한타 포지셔닝이 훌륭한 원딜", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p24", "name": "박잔디", "role": "adc", "tier": "Gold", "bio": "사리는 생존형 플레이, 서포터 보호 최적화", "status": "idle", "wonBy": None, "price": 0 },
 
-    { "id": "p25", "name": "박옥자누나", "role": "support", "tier": "B", "bio": "안정적인 아군 케어와 오더 보좌 능력이 탁월", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p26", "name": "소람잉", "role": "support", "tier": "A", "bio": "그랩류 메이킹 챔피언 장인, 폭발적인 한타 각 설계", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p27", "name": "여까", "role": "support", "tier": "B", "bio": "안정적인 탱커형 유틸서폿, 아군 딜러 시팅 전문", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p28", "name": "김여뉴", "role": "support", "tier": "A", "bio": "다양한 서폿 이해도, 시야 장악과 라인전 리드 우수", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p29", "name": "러너와이프", "role": "support", "tier": "C", "bio": "힐과 실드로 원딜을 100% 보살피는 헌신적인 서폿", "status": "idle", "wonBy": None, "price": 0 },
-    { "id": "p30", "name": "종우", "role": "support", "tier": "B", "bio": "플레이메이킹 서폿 선호, 과감한 이니시에이팅", "status": "idle", "wonBy": None, "price": 0 }
+    { "id": "p25", "name": "박옥자누나", "role": "support", "tier": "Platinum", "bio": "안정적인 아군 케어와 오더 보좌 능력이 탁월", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p26", "name": "소람잉", "role": "support", "tier": "Diamond", "bio": "그랩류 메이킹 챔피언 장인, 폭발적인 한타 각 설계", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p27", "name": "여까", "role": "support", "tier": "Platinum", "bio": "안정적인 탱커형 유틸서폿, 아군 딜러 시팅 전문", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p28", "name": "김여뉴", "role": "support", "tier": "Diamond", "bio": "다양한 서폿 이해도, 시야 장악과 라인전 리드 우수", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p29", "name": "러너와이프", "role": "support", "tier": "Gold", "bio": "힐과 실드로 원딜을 100% 보살피는 헌신적인 서폿", "status": "idle", "wonBy": None, "price": 0 },
+    { "id": "p30", "name": "종우", "role": "support", "tier": "Platinum", "bio": "플레이메이킹 서폿 선호, 과감한 이니시에이팅", "status": "idle", "wonBy": None, "price": 0 }
 ]
 
 # Global Application State
@@ -73,6 +73,7 @@ state = {
     },
     "teams": [dict(t) for t in DEFAULT_TEAMS],
     "players": [dict(p) for p in DEFAULT_PLAYERS],
+    "unsoldSequence": [],
     "history": [
         { "type": "system", "text": "실시간 경매 서버가 성공적으로 시작되었습니다.", "time": time.strftime("%H:%M:%S") }
     ],
@@ -191,6 +192,11 @@ def process_expiry():
                 if p["id"] == player["id"]:
                     p["status"] = "unsold"
             
+            if "unsoldSequence" not in state:
+                state["unsoldSequence"] = []
+            if player["id"] not in state["unsoldSequence"]:
+                state["unsoldSequence"].append(player["id"])
+            
             state["history"].append({
                 "type": "unsold",
                 "text": f"⚠️ {player['name']} 선수가 유찰되었습니다.",
@@ -269,11 +275,16 @@ def start_ai_thread():
 def ai_decision_worker():
     global state, auction_id
     tier_values = {
-        "S": 350,
-        "A": 180,
-        "B": 80,
-        "C": 30,
-        "D": 10
+        "Challenger": 380,
+        "Grandmaster": 320,
+        "Master": 240,
+        "Diamond": 170,
+        "Emerald": 120,
+        "Platinum": 80,
+        "Gold": 40,
+        "Silver": 20,
+        "Bronze": 10,
+        "Iron": 5
     }
     
     while True:
@@ -570,6 +581,8 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 player = next((p for p in state["players"] if p["id"] == player_id), None)
                 if player and player["status"] == "unsold":
                     player["status"] = "idle"
+                    if "unsoldSequence" in state and player_id in state["unsoldSequence"]:
+                        state["unsoldSequence"].remove(player_id)
                     state["history"].append({
                         "type": "system",
                         "text": f"🔄 {player['name']} 선수가 재경매 후보로 복귀했습니다.",
@@ -590,6 +603,7 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                     p["status"] = "idle"
                     p["wonBy"] = None
                     p["price"] = 0
+                state["unsoldSequence"] = []
                 auction["player"] = None
                 auction["currentBid"] = 0
                 auction["highestBidder"] = None
@@ -710,6 +724,8 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 p_obj = next((p for p in state["players"] if p["id"] == player_id), None)
                 p_name = p_obj["name"] if p_obj else ""
                 state["players"] = [p for p in state["players"] if p["id"] != player_id]
+                if "unsoldSequence" in state and player_id in state["unsoldSequence"]:
+                    state["unsoldSequence"].remove(player_id)
                 state["history"].append({
                     "type": "system",
                     "text": f"❌ 선수 제거: {p_name}",
@@ -720,6 +736,7 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 return
             elif action == "clear_all":
                 state["players"] = []
+                state["unsoldSequence"] = []
                 auction = state["currentAuction"]
                 if auction["player"] is not None:
                     auction["player"] = None

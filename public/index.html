@@ -131,9 +131,13 @@
 
               <!-- Captain Bidding Buttons -->
               <div id="captain-controls" class="captain-bid-zone" style="display: none;">
-                <button id="bid-action-btn" class="huge-bid-btn" onclick="submitBid()">
-                  입찰 하기 (+5p)
-                </button>
+                <div style="font-size: 0.85rem; font-weight: bold; color: var(--blue); margin-bottom: 12px; font-family: var(--font-title); text-shadow: 0 0 10px var(--blue-glow);">입찰 금액 추가 선택</div>
+                <div class="bid-buttons-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;">
+                  <button id="bid-btn-1" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(5)">+5p</button>
+                  <button id="bid-btn-2" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(10)">+10p</button>
+                  <button id="bid-btn-3" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(50)">+50p</button>
+                  <button id="bid-btn-4" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(100)">+100p</button>
+                </div>
                 <p id="captain-my-points" style="margin-top: 10px; font-weight: 700; color: var(--gold);"></p>
               </div>
 
@@ -151,11 +155,22 @@
 
           </div>
 
-          <!-- Bottom: History feed -->
-          <div class="glass-panel" style="height: 250px; display: flex; flex-direction: column;">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">실시간 입찰 피드 및 알림</h3>
-            <div id="history-feed" class="history-feed" style="flex: 1;">
-              <!-- JS 동적 주입 -->
+          <!-- Bottom: History feed & Unsold Queue -->
+          <div class="bottom-panels-grid">
+            <!-- History feed -->
+            <div class="glass-panel" style="display: flex; flex-direction: column; height: 100%;">
+              <h3 style="font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">실시간 입찰 피드 및 알림</h3>
+              <div id="history-feed" class="history-feed" style="flex: 1;">
+                <!-- JS 동적 주입 -->
+              </div>
+            </div>
+
+            <!-- Unsold Queue -->
+            <div class="glass-panel" style="display: flex; flex-direction: column; height: 100%;">
+              <h3 style="font-size: 1rem; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; color: var(--red); text-shadow: 0 0 8px var(--red-glow);">유찰 선수 순서 (재경매 대기열)</h3>
+              <div id="unsold-queue" class="history-feed" style="flex: 1;">
+                <!-- JS 동적 주입 -->
+              </div>
             </div>
           </div>
         </div>
@@ -240,11 +255,16 @@
             <div class="form-group">
               <label for="player-tier">가상 티어</label>
               <select id="player-tier" class="input-field" style="background: var(--bg-dark); color: white;">
-                <option value="S">S 클래스</option>
-                <option value="A">A 클래스</option>
-                <option value="B">B 클래스</option>
-                <option value="C">C 클래스</option>
-                <option value="D">D 클래스</option>
+                <option value="Challenger">챌린저</option>
+                <option value="Grandmaster">그랜드마스터</option>
+                <option value="Master">마스터</option>
+                <option value="Diamond">다이아몬드</option>
+                <option value="Emerald">에메랄드</option>
+                <option value="Platinum">플래티넘</option>
+                <option value="Gold">골드</option>
+                <option value="Silver">실버</option>
+                <option value="Bronze">브론즈</option>
+                <option value="Iron">아이언</option>
               </select>
             </div>
 
