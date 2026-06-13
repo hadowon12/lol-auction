@@ -734,6 +734,63 @@ class AuctionHandler(SimpleHTTPRequestHandler):
                 broadcast_state()
                 self.send_json_response({"success": True})
                 return
+            elif action == "assign_team":
+                player_id = data.get("playerId")
+                team_id = data.get("teamId")
+                price = int(data.get("price", 0))
+                
+                player = next((p for p in state["players"] if p["id"] == player_id), None)
+                team = next((t for t in state["teams"] if t["id"] == team_id), None)
+                
+                if not player:
+                    self.send_error_response(400, "선수를 찾을 수 없습니다.")
+                    return
+                if not team:
+                    self.send_error_response(400, "팀을 찾을 수 없습니다.")
+                    return
+                if player["status"] == "sold":
+                    self.send_error_response(400, "이미 낙찰되어 팀에 소속된 선수입니다.")
+                    return
+                
+                role = player["role"]
+                if team["roster"][role] is not None:
+                    self.send_error_response(400, f"해당 팀은 이미 {role.upper()} 슬롯이 차 있습니다.")
+                    return
+                
+                # 수동 배정 처리
+                team["points"] -= price
+                team["roster"][role] = {
+                    "id": player["id"],
+                    "name": player["name"],
+                    "price": price
+                }
+                
+                player["status"] = "sold"
+                player["wonBy"] = team["name"]
+                player["price"] = price
+                
+                # 만약 유찰 시퀀스에 있으면 제거
+                if "unsoldSequence" in state and player_id in state["unsoldSequence"]:
+                    state["unsoldSequence"].remove(player_id)
+                
+                # 만약 현재 경매 진행중인 선수였다면 현재 경매 초기화
+                auction = state["currentAuction"]
+                if auction["player"] and auction["player"]["id"] == player_id:
+                    auction["player"] = None
+                    auction["currentBid"] = 0
+                    auction["highestBidder"] = None
+                    auction["status"] = "idle"
+                    auction["timer"] = 0
+                
+                state["history"].append({
+                    "type": "sold",
+                    "text": f"⚙️ [수동 배정] {player['name']} 선수가 주최자에 의해 {team['captain']} 감독({team['name']}) 팀에 {price}포인트로 수동 배정되었습니다.",
+                    "time": time.strftime("%H:%M:%S")
+                })
+                
+                broadcast_state()
+                self.send_json_response({"success": True})
+                return
             elif action == "clear_all":
                 state["players"] = []
                 state["unsoldSequence"] = []

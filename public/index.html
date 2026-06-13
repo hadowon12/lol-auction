@@ -129,15 +129,16 @@
                 </div>
               </div>
 
-              <!-- Captain Bidding Buttons -->
+              <!-- Captain Bidding Controls -->
               <div id="captain-controls" class="captain-bid-zone" style="display: none;">
-                <div style="font-size: 0.85rem; font-weight: bold; color: var(--blue); margin-bottom: 12px; font-family: var(--font-title); text-shadow: 0 0 10px var(--blue-glow);">입찰 금액 추가 선택</div>
-                <div class="bid-buttons-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;">
-                  <button id="bid-btn-1" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(5)">+5p</button>
-                  <button id="bid-btn-2" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(10)">+10p</button>
-                  <button id="bid-btn-3" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(50)">+50p</button>
-                  <button id="bid-btn-4" class="huge-bid-btn" style="font-size: 1.1rem; padding: 12px 6px;" onclick="submitBid(100)">+100p</button>
+                <div style="font-size: 0.85rem; font-weight: bold; color: var(--blue); margin-bottom: 12px; font-family: var(--font-title); text-shadow: 0 0 10px var(--blue-glow);">입찰 금액 입력 및 조정</div>
+                <input type="number" id="bid-custom-amount" class="input-field" style="width: 100%; text-align: center; font-size: 1.4rem; font-weight: 900; color: var(--gold); background: rgba(0,0,0,0.3); border: 1px solid rgba(200, 170, 110, 0.3); border-radius: 4px; padding: 8px 12px; margin-bottom: 10px; box-sizing: border-box;" min="0">
+                <div class="bid-buttons-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+                  <button id="bid-adjust-5" class="huge-bid-btn" style="font-size: 1rem; padding: 10px 6px;" onclick="adjustBidInput(5)">+5p</button>
+                  <button id="bid-adjust-10" class="huge-bid-btn" style="font-size: 1rem; padding: 10px 6px;" onclick="adjustBidInput(10)">+10p</button>
+                  <button id="bid-adjust-100" class="huge-bid-btn" style="font-size: 1rem; padding: 10px 6px;" onclick="adjustBidInput(100)">+100p</button>
                 </div>
+                <button id="bid-submit-btn" class="huge-bid-btn" style="width: 100%; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, var(--gold), #b3862b); color: var(--bg-dark); text-shadow: none; border: none; padding: 12px; box-shadow: 0 0 15px rgba(200, 170, 110, 0.4); margin-bottom: 5px; cursor: pointer;" onclick="submitCustomBid()">입찰하기</button>
                 <p id="captain-my-points" style="margin-top: 10px; font-weight: 700; color: var(--gold);"></p>
               </div>
 

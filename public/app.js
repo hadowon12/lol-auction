@@ -499,63 +499,23 @@ function renderAuctionBoard() {
     
     const myTeam = localState.teams.find(t => t.id === myTeamId);
     const myPointsText = document.getElementById('captain-my-points');
+    const inputEl = document.getElementById('bid-custom-amount');
     
-    if (myTeam) {
+    if (myTeam && inputEl) {
       myPointsText.textContent = `나의 가용 포인트: ${myTeam.points}p`;
       
-      const buttonsInfo = [
-        { id: 'bid-btn-1', inc: 5 },
-        { id: 'bid-btn-2', inc: 10 },
-        { id: 'bid-btn-3', inc: 50 },
-        { id: 'bid-btn-4', inc: 100 }
-      ];
+      const nextMinAmount = Math.max(auction.currentBid + localState.settings.bidIncrement, localState.settings.minBid);
       
-      buttonsInfo.forEach(item => {
-        const btnEl = document.getElementById(item.id);
-        if (!btnEl) return;
-        
-        let nextBidAmount = auction.currentBid + item.inc;
-        if (auction.currentBid === 0) {
-          nextBidAmount = Math.max(item.inc, localState.settings.minBid);
-        }
-        
-        let disabled = false;
-        let reason = "";
-        
-        if (auction.status === 'drawing') {
-          disabled = true;
-          reason = "추첨 중";
-        } else if (auction.status === 'preparing') {
-          disabled = true;
-          reason = "대기 중";
-        } else if (auction.status !== 'bidding') {
-          disabled = true;
-          reason = "경매 비활성";
-        } else if (auction.highestBidder === myTeamId) {
-          disabled = true;
-          reason = "최고 입찰중";
-        } else if (auction.player && myTeam.roster[auction.player.role] !== null) {
-          disabled = true;
-          reason = "이미 영입";
-        } else if (myTeam.points < nextBidAmount) {
-          disabled = true;
-          reason = "잔고 부족";
-        } else if (localState.settings.strictReserve) {
-          const emptySlotsCount = Object.values(myTeam.roster).filter(val => val === null).length;
-          const requiredReserve = (emptySlotsCount - 1) * localState.settings.minBid;
-          if (myTeam.points - nextBidAmount < requiredReserve) {
-            disabled = true;
-            reason = "예약 필수";
-          }
-        }
-        
-        btnEl.disabled = disabled;
-        if (disabled && reason) {
-          btnEl.textContent = `+${item.inc}p (${reason})`;
-        } else {
-          btnEl.textContent = `+${item.inc}p (→ ${nextBidAmount}p)`;
-        }
-      });
+      if (inputEl.value === "" || lastActivePlayerId !== (auction.player ? auction.player.id : null) || lastBidValue !== auction.currentBid) {
+        inputEl.value = nextMinAmount;
+      }
+      
+      validateCustomBidInput();
+      
+      if (!inputEl.dataset.hasListener) {
+        inputEl.addEventListener('input', validateCustomBidInput);
+        inputEl.dataset.hasListener = 'true';
+      }
     }
   } else {
     capControls.style.display = 'none';
@@ -734,12 +694,14 @@ function renderPlayersTab() {
     if (p.status === 'idle') {
       actionBtnHtml = `
         <button class="btn btn-blue" style="padding: 4px 8px; font-size: 0.75rem;" onclick="adminDirectStart('${p.id}')">경매 개시</button>
+        <button class="btn btn-blue" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--gold); color: var(--gold);" onclick="assignPlayerToTeam('${p.id}')">팀에 추가</button>
         <button class="btn" style="padding: 4px 8px; font-size: 0.75rem;" onclick="editPlayer('${p.id}')">수정</button>
         <button class="btn btn-red" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deletePlayer('${p.id}')">삭제</button>
       `;
     } else if (p.status === 'unsold') {
       actionBtnHtml = `
         <button class="btn btn-blue" style="padding: 4px 8px; font-size: 0.75rem;" onclick="reNominateUnsold('${p.id}')">재경매 복귀</button>
+        <button class="btn btn-blue" style="padding: 4px 8px; font-size: 0.75rem; border-color: var(--gold); color: var(--gold);" onclick="assignPlayerToTeam('${p.id}')">팀에 추가</button>
         <button class="btn btn-red" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deletePlayer('${p.id}')">삭제</button>
       `;
     } else {
@@ -853,21 +815,15 @@ function renderSettingsTab() {
 // ----------------------------------------------------
 
 // 1. 감독 입찰 전송
-async function submitBid(increment) {
+async function submitBid(amount) {
   if (!myTeamId || !localState) return;
   initAudio(); // 첫 클릭 시 브라우저 오디오 맥 활성화
-  
-  const auction = localState.currentAuction;
-  let nextBidAmount = auction.currentBid + increment;
-  if (auction.currentBid === 0) {
-    nextBidAmount = Math.max(increment, localState.settings.minBid);
-  }
   
   try {
     const res = await fetch('/api/bid', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ teamId: myTeamId, amount: nextBidAmount })
+      body: JSON.stringify({ teamId: myTeamId, amount: amount })
     });
     const data = await res.json();
     if (!data.success) {
@@ -1339,5 +1295,179 @@ function renderUnsoldQueue() {
   });
   
   queueEl.innerHTML = html;
+}
+
+// 입력창 금액 실시간 유효성 검사 및 버튼 활성화 상태 업데이트
+function validateCustomBidInput() {
+  const inputEl = document.getElementById('bid-custom-amount');
+  const submitBtn = document.getElementById('bid-submit-btn');
+  if (!inputEl || !submitBtn || !localState || !myTeamId) return;
+  
+  const myTeam = localState.teams.find(t => t.id === myTeamId);
+  if (!myTeam) return;
+  
+  const auction = localState.currentAuction;
+  const amount = parseInt(inputEl.value, 10);
+  
+  let disabled = false;
+  let reason = "";
+  
+  if (auction.status === 'drawing') {
+    disabled = true;
+    reason = "추첨 진행 중";
+  } else if (auction.status === 'preparing') {
+    disabled = true;
+    reason = "경매 대기 중";
+  } else if (auction.status !== 'bidding') {
+    disabled = true;
+    reason = "경매 비활성 상태";
+  } else if (auction.highestBidder === myTeamId) {
+    disabled = true;
+    reason = "최고 입찰 상태";
+  } else if (auction.player && myTeam.roster[auction.player.role] !== null) {
+    disabled = true;
+    reason = `이미 영입 완료`;
+  } else if (isNaN(amount) || amount <= 0) {
+    disabled = true;
+    reason = "올바른 금액 입력 필요";
+  } else if (amount <= auction.currentBid) {
+    disabled = true;
+    reason = `최소 ${auction.currentBid + 1}p 이상 입찰 가능`;
+  } else if (myTeam.points < amount) {
+    disabled = true;
+    reason = "가용 포인트 부족";
+  } else if (localState.settings.strictReserve) {
+    const emptySlotsCount = Object.values(myTeam.roster).filter(val => val === null).length;
+    const requiredReserve = (emptySlotsCount - 1) * localState.settings.minBid;
+    if (myTeam.points - amount < requiredReserve) {
+      disabled = true;
+      reason = `포인트 예약 필요 (${requiredReserve}p)`;
+    }
+  }
+  
+  submitBtn.disabled = disabled;
+  if (disabled && reason) {
+    submitBtn.textContent = reason;
+  } else {
+    submitBtn.textContent = `입찰하기 (→ ${amount}p)`;
+  }
+}
+
+// 입찰 금액 조절 버튼 클릭
+function adjustBidInput(increment) {
+  const inputEl = document.getElementById('bid-custom-amount');
+  if (!inputEl) return;
+  let val = parseInt(inputEl.value, 10);
+  if (isNaN(val)) {
+    const auction = localState.currentAuction;
+    val = Math.max(auction.currentBid + localState.settings.bidIncrement, localState.settings.minBid);
+  }
+  inputEl.value = val + increment;
+  validateCustomBidInput();
+}
+
+// 수동 입력 가격 기반 입찰 제출
+function submitCustomBid() {
+  const inputEl = document.getElementById('bid-custom-amount');
+  if (!inputEl) return;
+  const amount = parseInt(inputEl.value, 10);
+  if (isNaN(amount) || amount <= 0) {
+    alert('올바른 입찰 금액을 입력하세요.');
+    return;
+  }
+  submitBid(amount);
+}
+
+// 선수 수동 팀 배정 팝업 열기
+function assignPlayerToTeam(playerId) {
+  const player = localState.players.find(p => p.id === playerId);
+  if (!player) return;
+  
+  // 기존 모달 제거
+  const oldModal = document.getElementById('assign-modal-overlay');
+  if (oldModal) oldModal.remove();
+  
+  // 동적 모달 오버레이 생성
+  const modal = document.createElement('div');
+  modal.id = 'assign-modal-overlay';
+  modal.className = 'sold-modal-overlay';
+  modal.style.display = 'flex';
+  modal.style.zIndex = '9999';
+  
+  const teamsOptions = localState.teams.map(t => {
+    const isSlotEmpty = t.roster[player.role] === null;
+    const slotStatus = isSlotEmpty ? '공석' : '가득참';
+    return `<option value="${t.id}" ${!isSlotEmpty ? 'disabled' : ''}>${t.captain} 감독 (${t.name}) - [${slotStatus}]</option>`;
+  }).join('');
+  
+  modal.innerHTML = `
+    <div class="sold-card" style="max-width: 400px; padding: 30px;">
+      <div style="font-family: var(--font-title); font-size: 0.9rem; color: var(--text-secondary); letter-spacing: 2px; margin-bottom: 5px;">MANUAL ASSIGNMENT</div>
+      <h2 style="margin-bottom: 20px;">선수 수동 팀 배정</h2>
+      <p style="color: white; font-weight: bold; margin-bottom: 20px; font-size: 1.1rem;">대상: ${player.name} (${roleToKorean(player.role)} | ${tierToKorean(player.tier)})</p>
+      
+      <div class="form-group" style="text-align: left; margin-bottom: 15px; width: 100%;">
+        <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 5px;">영입할 팀 선택</label>
+        <select id="assign-team-select" class="input-field" style="width: 100%; background: var(--bg-dark); color: white; padding: 8px; border-radius: 4px; box-sizing: border-box;">
+          ${teamsOptions}
+        </select>
+      </div>
+      
+      <div class="form-group" style="text-align: left; margin-bottom: 25px; width: 100%;">
+        <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 5px;">영입 낙찰가 (포인트)</label>
+        <input type="number" id="assign-price-input" class="input-field" style="width: 100%; text-align: center; color: var(--gold); font-weight: bold; font-size: 1.2rem; box-sizing: border-box;" value="0" min="0">
+      </div>
+      
+      <div style="display: flex; gap: 10px; width: 100%;">
+        <button class="btn btn-blue" style="flex: 1;" onclick="submitAssignTeam('${player.id}')">배정 완료</button>
+        <button class="btn btn-red" style="flex: 1;" onclick="closeAssignModal()">취소</button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+}
+
+// 수동 배정 팝업 닫기
+function closeAssignModal() {
+  const modal = document.getElementById('assign-modal-overlay');
+  if (modal) modal.remove();
+}
+
+// 수동 배정 API 전송
+async function submitAssignTeam(playerId) {
+  const teamSelect = document.getElementById('assign-team-select');
+  const priceInput = document.getElementById('assign-price-input');
+  if (!teamSelect || !priceInput) return;
+  
+  const teamId = teamSelect.value;
+  const price = parseInt(priceInput.value, 10);
+  
+  if (!teamId) {
+    alert('인수할 팀을 선택하세요.');
+    return;
+  }
+  if (isNaN(price) || price < 0) {
+    alert('올바른 포인트를 입력하세요.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/admin/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'assign_team', playerId, teamId, price })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAssignModal();
+      renderPlayersTab();
+    } else {
+      alert(data.message || '수동 배정에 실패했습니다.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('서버 통신 중 에러가 발생했습니다.');
+  }
 }
 
